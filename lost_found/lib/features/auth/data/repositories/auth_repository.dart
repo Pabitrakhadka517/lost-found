@@ -43,6 +43,19 @@ class AuthRepository implements IAuthRepository {
       try {
         final apiModel = AuthApiModel.fromEntity(user);
         await _authRemoteDataSource.register(apiModel);
+
+        // Also save to local Hive database for offline access
+        final authmodel = AuthHiveModel(
+          fullName: user.fullName,
+          email: user.email,
+          password: user.password,
+          username: user.username,
+          phoneNumber: user.phoneNumber,
+          batchId: user.batchId,
+          profilePicture: user.profilePicture,
+        );
+        await _authDataSource.register(authmodel);
+
         return const Right(true);
       } on DioException catch (e) {
         return Left(
@@ -88,23 +101,53 @@ class AuthRepository implements IAuthRepository {
   ) async {
     if (await _networkInfo.isConnected) {
       try {
+        // Try remote login first
         final apiModel = await _authRemoteDataSource.login(email, password);
         if (apiModel != null) {
           final entity = apiModel.toEntity();
           return Right(entity);
         }
+
+        // If remote fails, try local as fallback
+        try {
+          final hiveModel = await _authDataSource.login(email, password);
+          if (hiveModel != null) {
+            final entity = hiveModel.toEntity();
+            return Right(entity);
+          }
+        } catch (_) {
+          // Ignore local login errors
+        }
+
         return const Left(ApiFailure(message: "Invalid email or password"));
       } on DioException catch (e) {
+        // Try local login as fallback when API fails
+        try {
+          final hiveModel = await _authDataSource.login(email, password);
+          if (hiveModel != null) {
+            final entity = hiveModel.toEntity();
+            return Right(entity);
+          }
+        } catch (_) {
+          // Ignore local login errors
+        }
+
+        // Get more specific error message from backend
+        String errorMessage = 'Login failed';
+        if (e.response != null) {
+          errorMessage =
+              e.response?.data['message'] ??
+              e.response?.data['error'] ??
+              'Login failed';
+        }
         return Left(
-          ApiFailure(
-            message: e.response?.data['message'] ?? 'Login failed',
-            statusCode: e.response?.statusCode,
-          ),
+          ApiFailure(message: errorMessage, statusCode: e.response?.statusCode),
         );
       } catch (e) {
         return Left(ApiFailure(message: e.toString()));
       }
     } else {
+      // Offline - use local login
       try {
         final hiveModel = await _authDataSource.login(email, password);
         if (hiveModel != null) {
