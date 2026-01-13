@@ -1,6 +1,5 @@
 // ApiClient class definition
 
-import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter/foundation.dart';
@@ -150,7 +149,6 @@ class _AuthInterceptor extends Interceptor {
       ApiEndpoints.batches,
       ApiEndpoints.categories,
       ApiEndpoints.studentLogin,
-      ApiEndpoints.studentRegister,
     ];
 
     final isPublicGet =
@@ -159,7 +157,7 @@ class _AuthInterceptor extends Interceptor {
 
     final isAuthEndpoint =
         options.path == ApiEndpoints.studentLogin ||
-        options.path == ApiEndpoints.studentRegister;
+        options.path == ApiEndpoints.students;
 
     if (!isPublicGet && !isAuthEndpoint) {
       final token = await _storage.read(key: _tokenKey);

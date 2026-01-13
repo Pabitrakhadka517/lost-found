@@ -111,11 +111,6 @@ class HiveService {
     await Hive.openBox<CategoryHiveModel>(HiveTableConstant.categoryTable);
   }
 
-  // box close
-  Future<void> _close() async {
-    await Hive.close();
-  }
-
   // ======================= Batch Queries =========================
 
   Box<BatchHiveModel> get _batchBox =>

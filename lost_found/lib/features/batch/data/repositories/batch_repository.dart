@@ -14,11 +14,11 @@ import 'package:lost_n_found/features/batch/domain/repositories/batch_repository
 // Create provider
 final batchRepositoryProvider = Provider<IBatchRepository>((ref) {
   final batchLocalDatasource = ref.read(batchLocalDatasourceProvider);
-  final batchRemoteDataSource = ref.read(batchRemoteProvider);
+  final batchRemoteDatasource = ref.read(batchRemoteDatasourceProvider);
   final networkInfo = ref.read(networkInfoProvider);
   return BatchRepository(
     batchDatasource: batchLocalDatasource,
-    batchRemoteDatasource: batchRemoteDataSource,
+    batchRemoteDatasource: batchRemoteDatasource,
     networkInfo: networkInfo,
   );
 });
@@ -26,12 +26,12 @@ final batchRepositoryProvider = Provider<IBatchRepository>((ref) {
 class BatchRepository implements IBatchRepository {
   final IBatchLocalDatasource _batchLocalDataSource;
   final IBatchRemoteDatasource? _batchRemoteDataSource;
-  final NetworkInfo _networkInfo;
+  final INetworkInfo _networkInfo;
 
   BatchRepository({
     required IBatchLocalDatasource batchDatasource,
     required IBatchRemoteDatasource batchRemoteDatasource,
-    required NetworkInfo networkInfo,
+    required INetworkInfo networkInfo,
   }) : _batchLocalDataSource = batchDatasource,
        _batchRemoteDataSource = batchRemoteDatasource,
        _networkInfo = networkInfo;
@@ -71,15 +71,13 @@ class BatchRepository implements IBatchRepository {
   @override
   Future<Either<Failure, List<BatchEntity>>> getAllBatches() async {
     // check internet connection
-
     if (await _networkInfo.isConnected) {
       try {
-     //caputing api model 
-     final apiModels= await _batchRemoteDataSource.getAllBatches();
-     //convert to entity
-     final result = BatchApiModel.toEntityList(apiModels);
-
-     return Right(result);
+        //capturing api model
+        final apiModels = await _batchRemoteDataSource!.getAllBatches();
+        //convert to entity
+        final result = BatchApiModel.toEntityList(apiModels);
+        return Right(result);
       } on DioException catch (e) {
         return Left(
           ApiFailure(
@@ -87,25 +85,16 @@ class BatchRepository implements IBatchRepository {
             message: e.response?.data['message'] ?? 'failed to fetch batches',
           ),
         );
-      }}else{
-  try {
+      }
+    } else {
+      try {
         final models = await _batchLocalDataSource.getAllBatches();
         final entities = BatchHiveModel.toEntityList(models);
         return Right(entities);
       } catch (e) {
         return Left(LocalDatabaseFailure(message: e.toString()));
-        // Handle remote fetch error if necessary
       }
-      }
-     
     }
-    // try {
-    //   final models = await _batchLocalDataSource.getAllBatches();
-    //   final entities = BatchHiveModel.toEntityList(models);
-    //   return Right(entities);
-    // } catch (e) {
-    //   return Left(LocalDatabaseFailure(message: e.toString()));
-    // }
   }
 
   @override
