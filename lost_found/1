@@ -1,0 +1,11 @@
+Merge hive_database branch into current branch
+
+- Integrated Hive database implementation
+- Synced latest changes from hive_database branch
+
+Merge branch 'hive_database' of https://github.com/kiranrana8973/lost_n_found_mobile
+# Please enter a commit message to explain why this merge is necessary,
+# especially if it merges an updated upstream into a topic branch.
+#
+# Lines starting with '#' will be ignored, and an empty message aborts
+# the commit.
